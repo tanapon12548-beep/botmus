@@ -16,10 +16,26 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # ตั้งค่าสำหรับ yt-dlp และ FFmpeg เพื่อสตรีมเสียง
-# หา cookies — ลองจากโฟลเดอร์โปรเจคก่อน แล้ว Render Secret Files
-_cookies_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies.txt')
-_cookies_render = '/etc/secrets/cookies.txt'
-_cookies_path = _cookies_local if os.path.isfile(_cookies_local) else (_cookies_render if os.path.isfile(_cookies_render) else None)
+# 1. เช็ค YOUTUBE_COOKIES จาก Environment Variable (สำหรับ Render)
+_env_cookies = os.getenv('YOUTUBE_COOKIES')
+_cookies_path = None
+
+if _env_cookies:
+    _tmp_cookies = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies_env.txt')
+    try:
+        with open(_tmp_cookies, 'w', encoding='utf-8') as f:
+            f.write(_env_cookies)
+        _cookies_path = _tmp_cookies
+    except Exception as e:
+        print(f"Error writing YOUTUBE_COOKIES env: {e}")
+
+if not _cookies_path:
+    _cookies_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies.txt')
+    _cookies_render = '/etc/secrets/cookies.txt'
+    if os.path.isfile(_cookies_local):
+        _cookies_path = _cookies_local
+    elif os.path.isfile(_cookies_render):
+        _cookies_path = _cookies_render
 
 ytdl_format_options = {
     'format': 'bestaudio/best',
@@ -29,9 +45,13 @@ ytdl_format_options = {
     'nocheckcertificate': True,
     'source_address': '0.0.0.0',
     'remote_components': ['ejs:github'],
+    'http_headers': {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    }
 }
 # เพิ่ม cookies ถ้ามีไฟล์
 if _cookies_path:
+    print(f"ใช้งาน Cookies จาก: {_cookies_path}")
     ytdl_format_options['cookiefile'] = _cookies_path
 
 ffmpeg_options = {
