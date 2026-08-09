@@ -81,7 +81,7 @@ else:
     print("[Cookies Warning] No cookies file found!")
 
 ffmpeg_options = {
-    'options': '-vn'
+    'options': '-vn -af "apad=pad_dur=3"'
 }
 
 # หา FFmpeg — ลองจาก imageio_ffmpeg ก่อน แล้ว bin/ แล้วค่อย system PATH
