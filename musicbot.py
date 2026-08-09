@@ -26,6 +26,7 @@ ytdl_format_options = {
     'noplaylist': True,
     'quiet': True,
     'default_search': 'ytsearch',
+    'remote_components': ['ejs:github'],
 }
 # เพิ่ม cookies ถ้ามีไฟล์
 if _cookies_path:
