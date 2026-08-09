@@ -59,6 +59,8 @@ ytdl_format_options = {
 if _cookies_path:
     print(f"ใช้งาน Cookies จาก: {_cookies_path}")
     ytdl_format_options['cookiefile'] = _cookies_path
+else:
+    print("คำเตือน: ไม่พบไฟล์ Cookies! บน Render จำเป็นต้องตั้งค่า YOUTUBE_COOKIES หรือ Secret File")
 
 ffmpeg_options = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
