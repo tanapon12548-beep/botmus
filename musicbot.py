@@ -27,6 +27,11 @@ ytdl_format_options = {
     'quiet': True,
     'default_search': 'ytsearch',
     'remote_components': ['ejs:github'],
+    'extractor_args': {
+        'youtube': {
+            'player_client': ['mweb', 'ios', 'web']
+        }
+    }
 }
 # เพิ่ม cookies ถ้ามีไฟล์
 if _cookies_path:
