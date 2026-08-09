@@ -26,10 +26,12 @@ ytdl_format_options = {
     'noplaylist': True,
     'quiet': True,
     'default_search': 'ytsearch',
+    'nocheckcertificate': True,
+    'source_address': '0.0.0.0',
     'remote_components': ['ejs:github'],
     'extractor_args': {
         'youtube': {
-            'player_client': ['mweb', 'ios', 'web']
+            'player_client': ['mweb', 'tv_embedded', 'android', 'web']
         }
     }
 }
@@ -134,7 +136,7 @@ async def play(ctx, *, query):
 
     # ถ้าบอทยังไม่เข้าห้อง ให้เข้าห้อง
     if voice_client is None:
-        voice_client = await channel.connect()
+        voice_client = await channel.connect(self_deaf=True, timeout=60.0)
     else:
         await voice_client.move_to(channel)
 
