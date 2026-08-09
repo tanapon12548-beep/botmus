@@ -51,6 +51,11 @@ elif os.getenv('YOUTUBE_COOKIES'):
     except Exception as e:
         print(f"Error writing YOUTUBE_COOKIES env: {e}")
 
+class YTDLLogger:
+    def debug(self, msg): pass
+    def warning(self, msg): pass
+    def error(self, msg): pass
+
 ytdl_format_options = {
     'format': 'bestaudio/best',
     'noplaylist': True,
@@ -59,6 +64,7 @@ ytdl_format_options = {
     'nocheckcertificate': True,
     'source_address': '0.0.0.0',
     'remote_components': ['ejs:github'],
+    'logger': YTDLLogger(),
     'http_headers': {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     }
@@ -92,6 +98,7 @@ ytdl_sc = youtube_dl.YoutubeDL({
     'quiet': True,
     'default_search': 'scsearch',
     'nocheckcertificate': True,
+    'logger': YTDLLogger(),
 })
 
 import re
