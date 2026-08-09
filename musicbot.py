@@ -55,10 +55,10 @@ ytdl_format_options = {
 }
 # เพิ่ม cookies ถ้ามีไฟล์
 if _cookies_path:
-    print(f"ใช้งาน Cookies จาก: {_cookies_path}")
+    print(f"[Cookies] Loaded from: {_cookies_path}")
     ytdl_format_options['cookiefile'] = _cookies_path
 else:
-    print("คำเตือน: ไม่พบไฟล์ Cookies! บน Render จำเป็นต้องตั้งค่า YOUTUBE_COOKIES หรือ Secret File")
+    print("[Cookies Warning] No cookies file found!")
 
 ffmpeg_options = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
@@ -70,6 +70,30 @@ _ffmpeg_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 
 FFMPEG_PATH = _ffmpeg_local if os.path.isfile(_ffmpeg_local) else 'ffmpeg'
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
+
+# พักระบบด้วย SoundCloud สตรีมสำรองกรณี YouTube บล็อก IP
+ytdl_sc = youtube_dl.YoutubeDL({
+    'format': 'bestaudio/best',
+    'noplaylist': True,
+    'quiet': True,
+    'default_search': 'scsearch',
+    'nocheckcertificate': True,
+})
+
+def extract_info_sync(query):
+    try:
+        return ytdl.extract_info(query, download=False)
+    except Exception as e:
+        err_msg = str(e)
+        if any(keyword in err_msg.lower() for keyword in ["sign in to confirm", "too many requests", "429", "bot"]):
+            print(f"YouTube Block Detected, falling back to SoundCloud: {query}")
+            search_term = query
+            if 'watch?v=' in query:
+                search_term = query.split('watch?v=')[-1].split('&')[0]
+            elif query.startswith('http'):
+                search_term = query.split('/')[-1]
+            return ytdl_sc.extract_info(f"scsearch:{search_term}", download=False)
+        raise e
 
 # --- ระบบคิวเพลง (ไม่จำกัดจำนวน) ---
 # เก็บคิวแยกตาม guild (เซิร์ฟเวอร์)
@@ -91,8 +115,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
     @classmethod
     async def from_url(cls, url, *, loop=None):
         loop = loop or asyncio.get_event_loop()
-        # ดึงข้อมูลเพลงแบบ stream ไม่ดาวน์โหลดลงเครื่อง
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=False))
+        # ดึงข้อมูลเพลงแบบ stream ไม่ดาวน์โหลดลงเครื่อง (มี fallback ไป SoundCloud)
+        data = await loop.run_in_executor(None, lambda: extract_info_sync(url))
         
         if 'entries' in data:
             data = data['entries'][0]
@@ -170,7 +194,7 @@ async def play(ctx, *, query):
             try:
                 # ดึงแค่ชื่อเพลง ไม่ต้องสร้าง source ตอนนี้
                 data = await bot.loop.run_in_executor(
-                    None, lambda: ytdl.extract_info(query, download=False)
+                    None, lambda: extract_info_sync(query)
                 )
                 if 'entries' in data:
                     data = data['entries'][0]
