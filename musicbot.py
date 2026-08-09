@@ -9,7 +9,11 @@ from aiohttp import web
 
 load_dotenv()
 
-# ตั้งค่า PATH สำหรับ Deno บน Render (ต้องตั้งก่อน yt-dlp ทำงาน)
+# เพิ่ม bin/ ของโปรเจค (ที่มีทั้ง ffmpeg และ deno) เข้า PATH บนสุด
+_project_bin = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin')
+if os.path.isdir(_project_bin):
+    os.environ['PATH'] = _project_bin + os.pathsep + os.environ.get('PATH', '')
+
 deno_install = os.path.join(os.path.expanduser('~'), '.deno')
 if os.path.exists(deno_install):
     os.environ['PATH'] = os.path.join(deno_install, 'bin') + os.pathsep + os.environ.get('PATH', '')
@@ -92,7 +96,10 @@ def extract_info_sync(query):
                 search_term = query.split('watch?v=')[-1].split('&')[0]
             elif query.startswith('http'):
                 search_term = query.split('/')[-1]
-            return ytdl_sc.extract_info(f"scsearch:{search_term}", download=False)
+            
+            sc_data = ytdl_sc.extract_info(f"scsearch:{search_term}", download=False)
+            if sc_data and 'entries' in sc_data and len(sc_data['entries']) > 0:
+                return sc_data
         raise e
 
 # --- ระบบคิวเพลง (ไม่จำกัดจำนวน) ---
@@ -119,6 +126,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
         data = await loop.run_in_executor(None, lambda: extract_info_sync(url))
         
         if 'entries' in data:
+            if not data['entries']:
+                raise Exception("ไม่พบเพลงที่ค้นหา กรุณาลองค้นด้วยชื่อเพลงอื่นครับ")
             data = data['entries'][0]
 
         filename = data['url']
@@ -197,6 +206,9 @@ async def play(ctx, *, query):
                     None, lambda: extract_info_sync(query)
                 )
                 if 'entries' in data:
+                    if not data['entries']:
+                        await ctx.send("❌ ไม่พบเพลงที่ค้นหาครับ")
+                        return
                     data = data['entries'][0]
                 title = data.get('title', 'ไม่ทราบชื่อ')
                 queue.append({'url': query, 'title': title})
