@@ -167,22 +167,13 @@ def get_queue(guild_id):
         song_queues[guild_id] = deque()
     return song_queues[guild_id]
 
-class YTDLSource(discord.AudioSource):
-    def __init__(self, source, *, data):
-        self.source = source
+class YTDLSource(discord.PCMVolumeTransformer):
+    def __init__(self, source, *, data, volume=0.5):
+        super().__init__(source, volume)
         self.data = data
         self.title = data.get('title')
         self.url = data.get('url')
         self.filename = None
-
-    def read(self):
-        return self.source.read()
-
-    def is_opus(self):
-        return self.source.is_opus()
-
-    def cleanup(self):
-        self.source.cleanup()
 
     @classmethod
     async def from_url(cls, url, *, loop=None):
@@ -201,9 +192,8 @@ class YTDLSource(discord.AudioSource):
             # กรณีหา filepath ไม่เจอ ให้ลองใช้ค่า ext ประกอบชื่อ
             filename = ytdl.prepare_filename(data)
             
-        # ใช้ FFmpegOpusAudio เพื่อลดการใช้ CPU และแก้ปัญหาเพลงตัดจบ
-        audio_source = await discord.FFmpegOpusAudio.from_probe(filename, executable=FFMPEG_PATH, **ffmpeg_options)
-        player = cls(audio_source, data=data)
+        # ใช้ FFmpegPCMAudio เพื่อแก้ปัญหาเสียงกระตุกจาก Opus copy
+        player = cls(discord.FFmpegPCMAudio(filename, executable=FFMPEG_PATH, **ffmpeg_options), data=data)
         player.filename = filename
         return player
 
