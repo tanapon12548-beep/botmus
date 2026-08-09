@@ -102,15 +102,28 @@ ytdl_sc = youtube_dl.YoutubeDL({
     'nocheckcertificate': True,
 })
 
+import re
+
+def clean_query_term(q):
+    if q.startswith('ytsearch:'):
+        q = q[9:]
+    elif q.startswith('scsearch:'):
+        q = q[9:]
+    return q.strip()
+
 def get_oembed_title(query):
     try:
         import urllib.request, json
-        target_url = query if query.startswith('http') else f"https://www.youtube.com/watch?v={query}"
+        q = clean_query_term(query)
+        target_url = q if q.startswith('http') else f"https://www.youtube.com/watch?v={q}"
         oembed_url = f"https://www.youtube.com/oembed?url={target_url}&format=json"
         req = urllib.request.Request(oembed_url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=5) as res:
             data = json.loads(res.read().decode('utf-8'))
-            return data.get('title')
+            title = data.get('title', '')
+            clean_title = re.sub(r'[\(\[\{].*?[\)\]\}]', '', title)
+            clean_title = clean_title.replace('Official Video', '').replace('Official Audio', '').strip()
+            return clean_title if clean_title else title
     except Exception:
         return None
 
@@ -120,13 +133,29 @@ def extract_info_sync(query):
     except Exception as e:
         err_msg = str(e)
         if any(keyword in err_msg.lower() for keyword in ["sign in to confirm", "too many requests", "429", "bot"]):
-            print(f"[Fallback] YouTube Block Detected on Render for: {query}")
-            search_term = get_oembed_title(query) or query
-            print(f"[Fallback] Resolved song title: {search_term}")
+            clean_q = clean_query_term(query)
+            print(f"[Fallback] YouTube Block Detected for: {clean_q}")
             
-            sc_data = ytdl_sc.extract_info(f"scsearch:{search_term}", download=False)
-            if sc_data and 'entries' in sc_data and len(sc_data['entries']) > 0:
-                return sc_data
+            # 1. พยายามหาชื่อเพลงจริงผ่าน oEmbed
+            search_term = get_oembed_title(clean_q) or clean_q
+            print(f"[Fallback] Resolved search term: {search_term}")
+            
+            # 2. ค้นหาใน SoundCloud
+            try:
+                sc_data = ytdl_sc.extract_info(f"scsearch:{search_term}", download=False)
+                if sc_data and 'entries' in sc_data and len(sc_data['entries']) > 0:
+                    return sc_data
+            except Exception as sc_err:
+                print(f"[Fallback] SoundCloud search error: {sc_err}")
+                
+            # 3. ลองใช้คำค้นหาเดิม (กรณีต่างกัน)
+            if search_term != clean_q:
+                try:
+                    sc_data2 = ytdl_sc.extract_info(f"scsearch:{clean_q}", download=False)
+                    if sc_data2 and 'entries' in sc_data2 and len(sc_data2['entries']) > 0:
+                        return sc_data2
+                except Exception:
+                    pass
         raise e
 
 # --- ระบบคิวเพลง (ไม่จำกัดจำนวน) ---
