@@ -63,6 +63,7 @@ ytdl_format_options = {
     'noplaylist': True,
     'quiet': True,
     'default_search': 'ytsearch',
+    'extractor_args': {'youtube': {'player_client': ['android', 'web']}},
     'nocheckcertificate': True,
     'source_address': '0.0.0.0',
     'remote_components': ['ejs:github'],
