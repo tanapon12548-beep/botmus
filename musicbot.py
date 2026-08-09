@@ -58,6 +58,8 @@ class YTDLLogger:
 
 ytdl_format_options = {
     'format': 'bestaudio/best',
+    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+    'restrictfilenames': True,
     'noplaylist': True,
     'quiet': True,
     'default_search': 'ytsearch',
@@ -125,9 +127,9 @@ def get_oembed_title(query):
     except Exception:
         return None
 
-def extract_info_sync(query):
+def extract_info_sync(query, download=False):
     try:
-        return ytdl.extract_info(query, download=False)
+        return ytdl.extract_info(query, download=download)
     except Exception as e:
         err_msg = str(e)
         if any(keyword in err_msg.lower() for keyword in ["sign in to confirm", "too many requests", "429", "bot"]):
@@ -140,7 +142,7 @@ def extract_info_sync(query):
             
             # 2. ค้นหาใน SoundCloud
             try:
-                sc_data = ytdl_sc.extract_info(f"scsearch:{search_term}", download=False)
+                sc_data = ytdl_sc.extract_info(f"scsearch:{search_term}", download=download)
                 if sc_data and 'entries' in sc_data and len(sc_data['entries']) > 0:
                     return sc_data
             except Exception as sc_err:
@@ -149,7 +151,7 @@ def extract_info_sync(query):
             # 3. ลองใช้คำค้นหาเดิม (กรณีต่างกัน)
             if search_term != clean_q:
                 try:
-                    sc_data2 = ytdl_sc.extract_info(f"scsearch:{clean_q}", download=False)
+                    sc_data2 = ytdl_sc.extract_info(f"scsearch:{clean_q}", download=download)
                     if sc_data2 and 'entries' in sc_data2 and len(sc_data2['entries']) > 0:
                         return sc_data2
                 except Exception:
@@ -176,26 +178,23 @@ class YTDLSource(discord.PCMVolumeTransformer):
     @classmethod
     async def from_url(cls, url, *, loop=None):
         loop = loop or asyncio.get_event_loop()
-        # ดึงข้อมูลเพลงแบบ stream ไม่ดาวน์โหลดลงเครื่อง (มี fallback ไป SoundCloud)
-        data = await loop.run_in_executor(None, lambda: extract_info_sync(url))
+        # ดาวน์โหลดไฟล์ลงเครื่องก่อนเล่น ป้องกันปัญหา FFmpeg Network Segfault บน Cloud
+        data = await loop.run_in_executor(None, lambda: extract_info_sync(url, download=True))
         
         if 'entries' in data:
             if not data['entries']:
                 raise Exception("ไม่พบเพลงที่ค้นหา กรุณาลองค้นด้วยชื่อเพลงอื่นครับ")
             data = data['entries'][0]
 
-        filename = data['url']
-        
-        # ส่ง headers จาก yt-dlp ให้กับ ffmpeg ป้องกัน 403 Forbidden
-        headers = data.get('http_headers', {})
-        header_str = "".join([f"{k}: {v}\r\n" for k, v in headers.items()])
-        
-        custom_ffmpeg_options = ffmpeg_options.copy()
-        if header_str:
-            before_opts = custom_ffmpeg_options.get('before_options', '')
-            custom_ffmpeg_options['before_options'] = f'{before_opts} -headers "{header_str}"'
+        # yt-dlp จะคืนค่า 'requested_downloads' หรือใช้ 'url' หากเป็นการดึงไฟล์
+        filename = data.get('filepath') or data.get('requested_downloads', [{}])[0].get('filepath')
+        if not filename:
+            # กรณีหา filepath ไม่เจอ ให้ลองใช้ค่า ext ประกอบชื่อ
+            filename = ytdl.prepare_filename(data)
             
-        return cls(discord.FFmpegPCMAudio(filename, executable=FFMPEG_PATH, **custom_ffmpeg_options), data=data)
+        player = cls(discord.FFmpegPCMAudio(filename, executable=FFMPEG_PATH, **ffmpeg_options), data=data)
+        player.filename = filename
+        return player
 
 async def play_next(ctx):
     """เล่นเพลงถัดไปในคิว"""
@@ -289,6 +288,17 @@ async def play(ctx, *, query):
             def after_playing(error):
                 if error:
                     print(f'มีข้อผิดพลาด: {error}')
+                
+                # ลบไฟล์ที่ดาวน์โหลดมาเพื่อประหยัดพื้นที่
+                try:
+                    if hasattr(player, 'source') and hasattr(player.source, 'original') and getattr(player.source.original, '_process', None) is None:
+                        # ถ้า process ของ ffmpeg เคลียร์แล้ว ลบได้เลย
+                        pass
+                    if os.path.exists(player.filename):
+                        os.remove(player.filename)
+                except Exception as del_e:
+                    print(f"ลบไฟล์ไม่สำเร็จ: {del_e}")
+                    
                 asyncio.run_coroutine_threadsafe(play_next(ctx), bot.loop)
 
             voice_client.play(player, after=after_playing)
