@@ -26,8 +26,10 @@ ytdl_format_options = {
     'noplaylist': True,
     'quiet': True,
     'default_search': 'ytsearch',
-    'cookiefile': _cookies_path if os.path.isfile(_cookies_path) else None,
 }
+# เพิ่ม cookies ถ้ามีไฟล์
+if _cookies_path:
+    ytdl_format_options['cookiefile'] = _cookies_path
 
 ffmpeg_options = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
