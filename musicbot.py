@@ -159,6 +159,11 @@ def extract_info_sync(query, download=False):
                         return sc_data2
                 except Exception:
                     pass
+            
+            # ถ้าหาใน SoundCloud ไม่เจอเลย ให้แจ้งผู้ใช้แบบเข้าใจง่าย
+            raise Exception(f"⚠️ YouTube บล็อกลิงก์นี้ และบอทพยายามหาเพลง '{short_term}' ใน SoundCloud สำรองให้แล้วแต่ไม่เจอครับ แนะนำให้ลองพิมพ์ชื่อเพลงค้นหาเอง (เช่น !play {short_term})")
+        
+        # ถ้าไม่ใช่ error ของ bot block ให้โยน error ปกติ
         raise e
 
 # --- ระบบคิวเพลง (ไม่จำกัดจำนวน) ---
