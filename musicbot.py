@@ -29,11 +29,6 @@ ytdl_format_options = {
     'nocheckcertificate': True,
     'source_address': '0.0.0.0',
     'remote_components': ['ejs:github'],
-    'extractor_args': {
-        'youtube': {
-            'player_client': ['mweb', 'tv_embedded', 'android', 'web']
-        }
-    }
 }
 # เพิ่ม cookies ถ้ามีไฟล์
 if _cookies_path:
