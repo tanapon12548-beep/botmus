@@ -86,7 +86,10 @@ except Exception:
     _ffmpeg_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 'ffmpeg')
     FFMPEG_PATH = _ffmpeg_local if os.path.isfile(_ffmpeg_local) else 'ffmpeg'
 
-print(f"[FFmpeg] Executable path: {FFMPEG_PATH}")
+try:
+    print(f"[FFmpeg] Executable path: {FFMPEG_PATH}")
+except Exception:
+    print("[FFmpeg] Executable path loaded")
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
