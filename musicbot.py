@@ -140,18 +140,21 @@ def extract_info_sync(query, download=False):
             search_term = get_oembed_title(clean_q) or clean_q
             print(f"[Fallback] Resolved search term: {search_term}")
             
-            # 2. ค้นหาใน SoundCloud
+            # ตัดชื่อศิลปินหลังเครื่องหมาย - หรือ | ออกเพื่อให้ SoundCloud ค้นหาง่ายขึ้น
+            short_term = search_term.split('-')[0].split('|')[0].strip()
+            
+            # 2. ค้นหาใน SoundCloud ด้วยชื่อที่ตัดแล้ว
             try:
-                sc_data = ytdl_sc.extract_info(f"scsearch:{search_term}", download=download)
+                sc_data = ytdl_sc.extract_info(f"scsearch:{short_term}", download=download)
                 if sc_data and 'entries' in sc_data and len(sc_data['entries']) > 0:
                     return sc_data
             except Exception as sc_err:
                 print(f"[Fallback] SoundCloud search error: {sc_err}")
                 
-            # 3. ลองใช้คำค้นหาเดิม (กรณีต่างกัน)
-            if search_term != clean_q:
+            # 3. ลองใช้คำค้นหาเต็มๆ
+            if search_term != short_term:
                 try:
-                    sc_data2 = ytdl_sc.extract_info(f"scsearch:{clean_q}", download=download)
+                    sc_data2 = ytdl_sc.extract_info(f"scsearch:{search_term}", download=download)
                     if sc_data2 and 'entries' in sc_data2 and len(sc_data2['entries']) > 0:
                         return sc_data2
                 except Exception:
