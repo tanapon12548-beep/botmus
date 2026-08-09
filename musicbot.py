@@ -252,5 +252,6 @@ deno_install = os.path.join(os.path.expanduser('~'), '.deno')
 if os.path.exists(deno_install):
     os.environ['PATH'] = os.path.join(deno_install, 'bin') + os.pathsep + os.environ.get('PATH', '')
 
-TOKEN = os.getenv('DISCORD_TOKEN')
-bot.run(TOKEN)
+if __name__ == '__main__':
+    TOKEN = os.getenv('DISCORD_TOKEN')
+    bot.run(TOKEN)
