@@ -57,6 +57,15 @@ ytdl_format_options = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     }
 }
+# ระบุ Deno Binary เจาะจงให้ yt-dlp ใช้งาน
+_deno_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 'deno')
+_deno_home = os.path.join(os.path.expanduser('~'), '.deno', 'bin', 'deno')
+_deno_executable = _deno_local if os.path.isfile(_deno_local) else (_deno_home if os.path.isfile(_deno_home) else None)
+
+if _deno_executable:
+    print(f"[Deno] Explicit JS runtime path: {_deno_executable}")
+    ytdl_format_options['js_runtimes'] = {'deno': {'path': _deno_executable}}
+
 # เพิ่ม cookies ถ้ามีไฟล์
 if _cookies_path:
     print(f"[Cookies] Loaded from: {_cookies_path}")
@@ -90,18 +99,27 @@ ytdl_sc = youtube_dl.YoutubeDL({
     'nocheckcertificate': True,
 })
 
+def get_oembed_title(query):
+    try:
+        import urllib.request, json
+        target_url = query if query.startswith('http') else f"https://www.youtube.com/watch?v={query}"
+        oembed_url = f"https://www.youtube.com/oembed?url={target_url}&format=json"
+        req = urllib.request.Request(oembed_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=5) as res:
+            data = json.loads(res.read().decode('utf-8'))
+            return data.get('title')
+    except Exception:
+        return None
+
 def extract_info_sync(query):
     try:
         return ytdl.extract_info(query, download=False)
     except Exception as e:
         err_msg = str(e)
         if any(keyword in err_msg.lower() for keyword in ["sign in to confirm", "too many requests", "429", "bot"]):
-            print(f"YouTube Block Detected, falling back to SoundCloud: {query}")
-            search_term = query
-            if 'watch?v=' in query:
-                search_term = query.split('watch?v=')[-1].split('&')[0]
-            elif query.startswith('http'):
-                search_term = query.split('/')[-1]
+            print(f"[Fallback] YouTube Block Detected on Render for: {query}")
+            search_term = get_oembed_title(query) or query
+            print(f"[Fallback] Resolved song title: {search_term}")
             
             sc_data = ytdl_sc.extract_info(f"scsearch:{search_term}", download=False)
             if sc_data and 'entries' in sc_data and len(sc_data['entries']) > 0:
