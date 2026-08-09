@@ -84,9 +84,8 @@ ffmpeg_options = {
 }
 
 # หา FFmpeg — ลองจาก imageio_ffmpeg ก่อน แล้ว bin/ แล้วค่อย system PATH
-_ffmpeg_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 'ffmpeg')
-FFMPEG_PATH = _ffmpeg_local if os.path.isfile(_ffmpeg_local) else 'ffmpeg'
-
+# ใช้ FFmpeg จากระบบโดยตรง (รับประกันความเสถียรบน Docker)
+FFMPEG_PATH = 'ffmpeg'
 print(f"[FFmpeg] Executable path: {FFMPEG_PATH}")
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)

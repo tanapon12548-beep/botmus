@@ -208,9 +208,7 @@ git push -u origin main
 | การตั้งค่า | ค่า |
 |---|---|
 | **Name** | discord-music-bot |
-| **Runtime** | Python 3 |
-| **Build Command** | `chmod +x build.sh && ./build.sh` |
-| **Start Command** | `python musicbot.py` |
+| **Runtime** | Docker |
 | **Instance Type** | Free |
 
 5. เพิ่ม **Environment Variable**:
