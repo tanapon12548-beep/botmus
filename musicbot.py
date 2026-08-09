@@ -186,7 +186,17 @@ class YTDLSource(discord.PCMVolumeTransformer):
             data = data['entries'][0]
 
         filename = data['url']
-        return cls(discord.FFmpegPCMAudio(filename, executable=FFMPEG_PATH, **ffmpeg_options), data=data)
+        
+        # ส่ง headers จาก yt-dlp ให้กับ ffmpeg ป้องกัน 403 Forbidden
+        headers = data.get('http_headers', {})
+        header_str = "".join([f"{k}: {v}\r\n" for k, v in headers.items()])
+        
+        custom_ffmpeg_options = ffmpeg_options.copy()
+        if header_str:
+            before_opts = custom_ffmpeg_options.get('before_options', '')
+            custom_ffmpeg_options['before_options'] = f'{before_opts} -headers "{header_str}"'
+            
+        return cls(discord.FFmpegPCMAudio(filename, executable=FFMPEG_PATH, **custom_ffmpeg_options), data=data)
 
 async def play_next(ctx):
     """เล่นเพลงถัดไปในคิว"""
