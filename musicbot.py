@@ -28,6 +28,10 @@ ffmpeg_options = {
     'options': '-vn'
 }
 
+# หา FFmpeg — ลองจาก bin/ ก่อน (สำหรับ Render) ถ้าไม่มีใช้ system PATH
+_ffmpeg_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 'ffmpeg')
+FFMPEG_PATH = _ffmpeg_local if os.path.isfile(_ffmpeg_local) else 'ffmpeg'
+
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
 # --- ระบบคิวเพลง (ไม่จำกัดจำนวน) ---
@@ -57,7 +61,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
             data = data['entries'][0]
 
         filename = data['url']
-        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
+        return cls(discord.FFmpegPCMAudio(filename, executable=FFMPEG_PATH, **ffmpeg_options), data=data)
 
 async def play_next(ctx):
     """เล่นเพลงถัดไปในคิว"""
