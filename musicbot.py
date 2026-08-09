@@ -16,11 +16,17 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # ตั้งค่าสำหรับ yt-dlp และ FFmpeg เพื่อสตรีมเสียง
+# หา cookies — ลองจากโฟลเดอร์โปรเจคก่อน แล้ว Render Secret Files
+_cookies_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cookies.txt')
+_cookies_render = '/etc/secrets/cookies.txt'
+_cookies_path = _cookies_local if os.path.isfile(_cookies_local) else (_cookies_render if os.path.isfile(_cookies_render) else None)
+
 ytdl_format_options = {
     'format': 'bestaudio/best',
     'noplaylist': True,
     'quiet': True,
-    'default_search': 'ytsearch',  # ค้นหาจาก YouTube อัตโนมัติเมื่อพิมพ์ชื่อเพลง
+    'default_search': 'ytsearch',
+    'cookiefile': _cookies_path if os.path.isfile(_cookies_path) else None,
 }
 
 ffmpeg_options = {
