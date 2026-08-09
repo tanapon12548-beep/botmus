@@ -69,9 +69,15 @@ ffmpeg_options = {
     'options': '-vn'
 }
 
-# หา FFmpeg — ลองจาก bin/ ก่อน (สำหรับ Render) ถ้าไม่มีใช้ system PATH
-_ffmpeg_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 'ffmpeg')
-FFMPEG_PATH = _ffmpeg_local if os.path.isfile(_ffmpeg_local) else 'ffmpeg'
+# หา FFmpeg — ลองจาก imageio_ffmpeg ก่อน แล้ว bin/ แล้วค่อย system PATH
+try:
+    import imageio_ffmpeg
+    FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
+except Exception:
+    _ffmpeg_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 'ffmpeg')
+    FFMPEG_PATH = _ffmpeg_local if os.path.isfile(_ffmpeg_local) else 'ffmpeg'
+
+print(f"[FFmpeg] Executable path: {FFMPEG_PATH}")
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
