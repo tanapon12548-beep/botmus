@@ -6,6 +6,12 @@ import os
 from dotenv import load_dotenv 
 from collections import deque
 from aiohttp import web
+import urllib.request
+import re
+
+# เอาโฟลเดอร์ bin ใส่เข้าไปใน PATH ของระบบ เพื่อให้เรียก ffmpeg และ deno ได้อัตโนมัติ
+_bin_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin')
+os.environ["PATH"] = _bin_dir + os.pathsep + os.environ.get("PATH", "")
 
 load_dotenv()
 
@@ -57,14 +63,7 @@ ytdl_format_options = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     }
 }
-# ระบุ Deno Binary เจาะจงให้ yt-dlp ใช้งาน
-_deno_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 'deno')
-_deno_home = os.path.join(os.path.expanduser('~'), '.deno', 'bin', 'deno')
-_deno_executable = _deno_local if os.path.isfile(_deno_local) else (_deno_home if os.path.isfile(_deno_home) else None)
-
-if _deno_executable:
-    print(f"[Deno] Explicit JS runtime path: {_deno_executable}")
-    ytdl_format_options['js_runtimes'] = {'deno': {'path': _deno_executable}}
+# ให้ระบบค้นหา Deno จาก PATH อัตโนมัติ (ใส่ bin ใน PATH ไว้แล้ว)
 
 # เพิ่ม cookies ถ้ามีไฟล์
 if _cookies_path:
@@ -79,17 +78,10 @@ ffmpeg_options = {
 }
 
 # หา FFmpeg — ลองจาก imageio_ffmpeg ก่อน แล้ว bin/ แล้วค่อย system PATH
-try:
-    import imageio_ffmpeg
-    FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
-except Exception:
-    _ffmpeg_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 'ffmpeg')
-    FFMPEG_PATH = _ffmpeg_local if os.path.isfile(_ffmpeg_local) else 'ffmpeg'
+_ffmpeg_local = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bin', 'ffmpeg')
+FFMPEG_PATH = _ffmpeg_local if os.path.isfile(_ffmpeg_local) else 'ffmpeg'
 
-try:
-    print(f"[FFmpeg] Executable path: {FFMPEG_PATH}")
-except Exception:
-    print("[FFmpeg] Executable path loaded")
+print(f"[FFmpeg] Executable path: {FFMPEG_PATH}")
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
