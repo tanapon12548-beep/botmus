@@ -8,6 +8,12 @@ from collections import deque
 from aiohttp import web
 
 load_dotenv()
+
+# ตั้งค่า PATH สำหรับ Deno บน Render (ต้องตั้งก่อน yt-dlp ทำงาน)
+deno_install = os.path.join(os.path.expanduser('~'), '.deno')
+if os.path.exists(deno_install):
+    os.environ['PATH'] = os.path.join(deno_install, 'bin') + os.pathsep + os.environ.get('PATH', '')
+
 # ตั้งค่า Intents ให้บอทอ่านข้อความได้
 intents = discord.Intents.default()
 intents.message_content = True
@@ -268,11 +274,6 @@ async def stop(ctx):
         await ctx.send("🛑 ออกจากห้องและหยุดเล่นเพลงแล้ว")
     else:
         await ctx.send("บอทไม่ได้อยู่ใน Voice Channel ครับ")
-
-# ตั้งค่า PATH สำหรับ Deno บน Render
-deno_install = os.path.join(os.path.expanduser('~'), '.deno')
-if os.path.exists(deno_install):
-    os.environ['PATH'] = os.path.join(deno_install, 'bin') + os.pathsep + os.environ.get('PATH', '')
 
 if __name__ == '__main__':
     TOKEN = os.getenv('DISCORD_TOKEN')
